@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "urlshortener"
+version = "0.1.0"
+description = "A Simple URLShortnener using Python"
+authors = ["Mahdi Jafari <mahdi100th@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = {extras = ["all"], version = "^0.96.0"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
