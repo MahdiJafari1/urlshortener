@@ -3,7 +3,7 @@ import hashlib
 import sqlalchemy
 from fastapi import Depends, FastAPI
 from fastapi.responses import PlainTextResponse, RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -17,7 +17,7 @@ Base = declarative_base()
 
 
 class URLItem(BaseModel):
-    url: str
+    url: HttpUrl
 
 
 class URL(Base):
@@ -39,30 +39,30 @@ def get_db():
         db.close()
 
 
-@app.post("/")
+@app.post("/shorten_url")
 def create_short_url(item: URLItem, db: Session = Depends(get_db)):
+    """Gets a long URL and return its short URL."""
     long_url = item.url
 
-    # Generate a short key (hash) for the URL
     key = generate_short_key(long_url)
 
     # Check for duplicate key and re-hash if necessary
     while db.query(URL).filter(URL.key == key).first():
-        key = generate_short_key(key + "1")  # Add a unique value and re-hash
+        key = generate_short_key(key + "1")
 
     url = URL(key=key, long_url=long_url)
     db.add(url)
     db.commit()
 
-    # Construct the response
-    short_url = f"http://localhost/{key}"
-    response = {"key": key, "long_url": long_url, "short_url": short_url}
+    short_url = f"http://localhost:8000/{key}"
+    response = {"short_url": short_url}
 
     return response
 
 
 @app.get("/{key}")
 def redirect_short_url(key: str, db: Session = Depends(get_db)):
+    """Redirects to the long URL."""
     url = db.query(URL).filter(URL.key == key).first()
 
     if url:
@@ -74,6 +74,7 @@ def redirect_short_url(key: str, db: Session = Depends(get_db)):
 
 @app.delete("/{key}")
 def delete_short_url(key: str, db: Session = Depends(get_db)):
+    """Remove the short URL from the database."""
     url = db.query(URL).filter(URL.key == key).first()
 
     if url:
@@ -85,7 +86,5 @@ def delete_short_url(key: str, db: Session = Depends(get_db)):
 
 
 def generate_short_key(long_url):
-    # Implement your hash function or use an existing library to generate a short key
-    # Make sure to consider collision probability when deciding on the key length
-    # For simplicity, we'll use a basic hash of the URL here
+    """Generate a short key for the long URL."""
     return hashlib.md5(long_url.encode()).hexdigest()[:6]
